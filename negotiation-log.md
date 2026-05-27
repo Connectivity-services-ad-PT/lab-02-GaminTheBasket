@@ -20,14 +20,24 @@
 
 ---
 
-## Issue #2 (Đàm phán với Pair 06 - IoT)
-- Raised by: Provider (Analytics)
-- Endpoint: Topic `iot.telemetry.ingested`
-- Concern: Định dạng kiểu dữ liệu của giá trị cảm biến (`value`) dễ bị gửi nhầm thành chuỗi (String).
-- Proposal: Ép kiểu dữ liệu của `value` bắt buộc phải là số (Number/Float) trong schema.
-- Resolution: Accepted
-- Rationale: Analytics cần chạy các hàm toán học (SUM, AVG) realtime. Nếu để chuỗi sẽ gây lỗi crash Worker khi ép kiểu.
-- Impact: Nhóm IoT phải validate chặt kiểu dữ liệu trước khi đẩy vào Queue.
+## Issue đàm phán với IoT Ingestion (A1)
+- **Raised by:** Provider (Analytics - A5)
+- **Endpoint:** Topic `iot.telemetry.ingested`
+- **Concern:** Analytics cần biết dữ liệu trắc đo thuộc tòa nhà nào để vẽ biểu đồ mật độ sử dụng năng lượng.
+- **Proposal:** Nhóm A1 đồng ý bổ sung trường `zoneId` vào payload của sự kiện telemetry.
+- **Resolution:** Accepted
+- **Rationale:** Việc gán `zoneId` tại nguồn giúp Analytics thực hiện lệnh Group By nhanh chóng, tăng tốc độ xử lý dữ liệu realtime.
+- **Impact:** Nhóm A1 đã cập nhật code phát sự kiện để đính kèm thông tin `zoneId`.
+
+## Issue thống nhất chuẩn định dạng thời gian (Cả 2 nhóm)
+- **Concern:** Sai lệch múi giờ gây lỗi timeline trên biểu đồ thống kê.
+- **Proposal:** Thống nhất định dạng `occurredAt` theo chuẩn ISO 8601, múi giờ UTC (đuôi Z).
+- **Resolution:** Accepted
+- **Rationale:** Đảm bảo tính tuần tự (Ordering) khi Analytics xử lý đồng bộ chuỗi dữ liệu lịch sử.
+- **Impact:** Nhóm A1 đồng ý format lại timestamp trước khi gửi tin nhắn vào Queue.
+
+**Provider sign-off:** Nguyễn Hữu Tuấn Minh (Leader A5)
+**Consumer sign-off:** Nguyễn Tuấn Anh (Leader A1)
 
 ---
 
@@ -42,36 +52,66 @@
 
 ---
 
-## Issue #4 (Đàm phán với Pair 09 - Access Gate)
-- Raised by: Provider (Analytics)
-- Endpoint: Topic `gate.access.logged`
-- Concern: Sự cố rớt mạng có thể khiến cổng quẹt thẻ gửi trùng một lượt quẹt nhiều lần khi có mạng lại, làm sai lệch số lượng người ra vào tòa nhà.
-- Proposal: Thêm trường `eventId` (chuẩn UUID) làm khóa Idempotency. Analytics sẽ drop các event có UUID đã tồn tại trong 24h qua.
-- Resolution: Accepted
-- Rationale: Đảm bảo tính chính xác cho báo cáo lưu lượng ra vào (Exactly-once processing mindset).
-- Impact: Access Gate phải sinh UUID duy nhất cho mỗi lượt quẹt thẻ cứng.
+## Issue đàm phán với Access Gate (A3)
+- **Raised by:** Provider (Analytics - A5)
+- **Endpoint:** Topic `gate.access.logged`
+- **Concern:** Rủi ro trùng lặp dữ liệu (Duplicate) khi thiết bị cổng an ninh mất kết nối mạng và gửi lại tin nhắn sau khi phục hồi, làm sai lệch báo cáo lưu lượng ra/vào.
+- **Proposal:** Nhóm A3 (Access Gate) bắt buộc tích hợp thư viện sinh UUID v4 làm `eventId` cho mỗi sự kiện quẹt thẻ.
+- **Resolution:** Accepted
+- **Rationale:** Phân hệ Analytics (A5) sẽ sử dụng mã này làm Idempotency Key để đảm bảo tính toàn vẹn dữ liệu thống kê (Exactly-once processing).
+- **Impact:** Nhóm A3 cập nhật logic code tại module phát sự kiện, đính kèm `eventId` vào gói tin.
+
+## Issue thống nhất chuẩn định dạng thời gian (Cả 2 nhóm)
+- **Concern:** Sai lệch thời gian trên biểu đồ do múi giờ local của các thiết bị cổng khác nhau.
+- **Proposal:** Thống nhất toàn bộ trường `occurredAt` (timestamp) phải định dạng ISO 8601 và ép múi giờ UTC (đuôi Z).
+- **Resolution:** Accepted
+- **Rationale:** Đảm bảo tính tuần tự (Ordering) khi Analytics xử lý đồng bộ chuỗi dữ liệu lịch sử.
+- **Impact:** Nhóm A3 cập nhật hàm xử lý thời gian trước khi publish tin nhắn lên Broker.
+
+**Provider sign-off:** Nguyễn Hữu Tuấn Minh (Leader A5)
+**Consumer sign-off:** Lương Duy Chiến (Leader A3)
 
 ---
 
-## Issue #5 (Đàm phán với Pair 07 - Camera)
-- Raised by: Consumer (Camera - A2)
-- Endpoint: Topic `camera.motion.detected`
-- Concern: Dữ liệu phát hiện chuyển động quá nhiều (50 khung hình/giây), nếu bắn lẻ tẻ sẽ gây sập Message Broker.
-- Proposal: Cho phép Consumer đóng gói (Batch) dữ liệu, 5 giây bắn lên Queue một lần dưới dạng mảng (Array).
-- Resolution: Accepted
-- Rationale: Tối ưu băng thông mạng và giảm tải cho Analytics Worker.
-- Impact: Analytics phải viết lại logic parse JSON để đọc mảng thay vì object đơn.
+## Issue đàm phán với Camera Stream (A2)
+- **Raised by:** Consumer (Camera Stream - A2)
+- **Endpoint:** Topic `camera.motion.detected`
+- **Concern:** Tần suất phát hiện chuyển động quá lớn (hàng chục frame/giây) gây nguy cơ nghẽn Broker.
+- **Proposal:** Nhóm A5 chấp thuận cho nhóm A2 thực hiện Batching sự kiện (gộp các sự kiện trong 5s thành mảng) trước khi gửi.
+- **Resolution:** Modified
+- **Rationale:** Việc này giúp hệ thống ổn định, giảm số lượng message overhead trên Broker.
+- **Impact:** Analytics Worker đã cập nhật logic để parse dữ liệu nhận được ở dạng mảng (Array).
+
+## Issue thống nhất chuẩn định dạng thời gian (Cả 2 nhóm)
+- **Concern:** Sai lệch thời gian trên biểu đồ do múi giờ local của camera khác nhau.
+- **Proposal:** Thống nhất định dạng `occurredAt` theo chuẩn ISO 8601, múi giờ UTC (đuôi Z).
+- **Resolution:** Accepted
+- **Rationale:** Đảm bảo tính tuần tự (Ordering) khi Analytics xử lý dữ liệu.
+- **Impact:** Nhóm A2 đồng ý format lại timestamp trước khi gửi tin nhắn vào Queue.
+
+**Provider sign-off:** Nguyễn Hữu Tuấn Minh (Leader A5)
+**Consumer sign-off:** Bùi Đình Phúc (Leader A2)
 
 ---
 
-## Issue #6 (Đàm phán với Pair 08 - Core Business)
-- Raised by: Provider (Analytics)
-- Endpoint: Topic `core.alert.published`
-- Concern: Nếu Core bắn payload thiếu thông tin (ví dụ thiếu mã `severity`), Analytics không biết phân loại màu sắc biểu đồ cảnh báo.
-- Proposal: Các thông điệp sai Schema sẽ bị Analytics từ chối thẳng và đẩy vào luồng Dead-Letter Queue (DLQ).
-- Resolution: Accepted
-- Rationale: Giữ cho luồng dữ liệu chính vào Data Warehouse luôn sạch sẽ, không bị kẹt vì một tin nhắn lỗi.
-- Impact: Core phải đảm bảo validate JSON chặt chẽ trước khi publish.
+## Issue đàm phán với Core Business (A6)
+- **Raised by:** Provider (Analytics - A5)
+- **Endpoint:** Topic `core.alert.published`
+- **Concern:** Analytics cần biết mức độ nghiêm trọng để phân loại KPI cảnh báo trên Dashboard.
+- **Proposal:** Nhóm A6 (Core) bắt buộc cung cấp trường `severity` với tập giá trị Enum: `[LOW, MEDIUM, HIGH, CRITICAL]`.
+- **Resolution:** Accepted
+- **Rationale:** Đảm bảo Analytics có đủ dữ liệu để tính toán KPI vận hành và hiển thị biểu đồ phân loại sự cố chính xác.
+- **Impact:** Nhóm A6 bổ sung ràng buộc dữ liệu tại tầng phát sự kiện.
+
+## Issue thống nhất chuẩn định dạng thời gian (Cả 2 nhóm)
+- **Concern:** Sai lệch múi giờ gây lỗi timeline trên biểu đồ thống kê KPI.
+- **Proposal:** Thống nhất định dạng `occurredAt` theo chuẩn ISO 8601, múi giờ UTC (đuôi Z).
+- **Resolution:** Accepted
+- **Rationale:** Giúp hệ thống Analytics sắp xếp thứ tự sự cố (Ordering) chính xác tuyệt đối.
+- **Impact:** Nhóm A6 đồng ý format lại timestamp trước khi gửi tin nhắn vào Queue.
+
+**Provider sign-off:** Nguyễn Hữu Tuấn Minh (Leader A5)
+**Consumer sign-off:** Nguyễn Văn Hưởng (Leader A6)
 
 ---
 
