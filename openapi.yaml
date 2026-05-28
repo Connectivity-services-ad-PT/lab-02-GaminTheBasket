@@ -286,7 +286,8 @@ components:
       required: false
       description: Cursor dùng để lấy trang tiếp theo.
       schema:
-        type: ["string", "null"]
+        type: string
+        nullable: true
         minLength: 1
         maxLength: 200
     Limit:
@@ -349,7 +350,8 @@ components:
           description: Nội dung cảnh báo.
           example: Phát hiện truy cập trái phép tại cổng chính
         relatedEventId:
-          type: ["string", "null"]
+          type: string
+          nullable: true
           format: uuid
           description: Event liên quan, có thể null nếu chưa có event id.
           example: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
@@ -377,7 +379,8 @@ components:
               description: Thời điểm tạo alert.
               example: '2026-05-10T08:00:00Z'
             resolvedAt:
-              type: ["string", "null"]
+              type: string
+              nullable: true
               format: date-time
               description: Thời điểm xử lý xong, null nếu chưa xử lý.
               example: null
@@ -400,7 +403,8 @@ components:
           items:
             $ref: '#/components/schemas/Alert'
         nextCursor:
-          type: ["string", "null"]
+          type: string
+          nullable: true
           description: Cursor trang tiếp theo, null nếu hết dữ liệu.
           example: null
         hasMore:
@@ -530,12 +534,14 @@ components:
           description: HTTP status code.
           example: 400
         detail:
-          type: ["string", "null"]
+          type: string
+          nullable: true
           maxLength: 500
           description: Mô tả chi tiết lỗi.
           example: Field cardId không đúng định dạng
         instance:
-          type: ["string", "null"]
+          type: string
+          nullable: true
           format: uri
           description: URI của request gây lỗi.
           example: /alerts
