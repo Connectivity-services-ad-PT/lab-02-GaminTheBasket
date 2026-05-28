@@ -90,7 +90,7 @@ paths:
                     relatedEventId: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
                     status: OPEN
                     createdAt: '2026-05-10T08:00:00Z'
-                    resolvedAt: null
+                    resolvedAt: '2026-05-11T10:00:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -127,9 +127,9 @@ paths:
                         relatedEventId: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
                         status: OPEN
                         createdAt: '2026-05-10T08:00:00Z'
-                        resolvedAt: null
-                    nextCursor: null
-                    hasMore: false
+                        resolvedAt: '2026-05-11T10:00:00Z'
+                    nextCursor: 'cursor-page-2'
+                    hasMore: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -286,8 +286,7 @@ components:
       required: false
       description: Cursor dùng để lấy trang tiếp theo.
       schema:
-        type: string
-        nullable: true
+        type: ["string", "null"]
         minLength: 1
         maxLength: 200
     Limit:
@@ -350,8 +349,7 @@ components:
           description: Nội dung cảnh báo.
           example: Phát hiện truy cập trái phép tại cổng chính
         relatedEventId:
-          type: string
-          nullable: true
+          type: ["string", "null"]
           format: uuid
           description: Event liên quan, có thể null nếu chưa có event id.
           example: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
@@ -379,11 +377,10 @@ components:
               description: Thời điểm tạo alert.
               example: '2026-05-10T08:00:00Z'
             resolvedAt:
-              type: string
-              nullable: true
+              type: ["string", "null"]
               format: date-time
               description: Thời điểm xử lý xong, null nếu chưa xử lý.
-              example: null
+              example: '2026-05-11T10:00:00Z'
 
     AlertSeverity:
       type: string
@@ -403,10 +400,9 @@ components:
           items:
             $ref: '#/components/schemas/Alert'
         nextCursor:
-          type: string
-          nullable: true
+          type: ["string", "null"]
           description: Cursor trang tiếp theo, null nếu hết dữ liệu.
-          example: null
+          example: 'cursor-page-2'
         hasMore:
           type: boolean
           description: Còn dữ liệu ở trang sau hay không.
@@ -534,14 +530,12 @@ components:
           description: HTTP status code.
           example: 400
         detail:
-          type: string
-          nullable: true
+          type: ["string", "null"]
           maxLength: 500
           description: Mô tả chi tiết lỗi.
           example: Field cardId không đúng định dạng
         instance:
-          type: string
-          nullable: true
+          type: ["string", "null"]
           format: uri
           description: URI của request gây lỗi.
           example: /alerts
