@@ -111,7 +111,7 @@
 - **Impact:** Nhóm A6 đồng ý format lại timestamp trước khi gửi tin nhắn vào Queue.
 
 **Provider sign-off:** Nguyễn Hữu Tuấn Minh (Leader A5)
-**Consumer sign-off:** Nguyễn Văn Hưởng (Leader A6)
+**Consumer sign-off:** Nguyễn Thị Hồng Duyên (Leader A6)
 
 ---
 
